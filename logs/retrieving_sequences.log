@@ -1,0 +1,12 @@
+-------------------------------------------
+searching for ("homo sapiens"[Organism] AND HBB[Gene]) in nucleotide database
+there are 1 records
+Accession IDs saved to data/metadata/accession_IDs.txt
+
+-------------------------------------------
+<> ids extracted successfully!
+-------------------------------------------
+File 1394355623.fasta already exists, skipping download.
+
+-------------------------------------------
+<> fasta records extracted successfully!
