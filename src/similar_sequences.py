@@ -5,7 +5,7 @@ import argparse
 import os
 from retrieving_sequences import getting_full_fasta_records
 
-def find_similar_sequences(input_fasta, output_file, log_file=None, e_value=0.001):
+def find_similar_sequences(input_fasta, output_file, log_file=None):
     '''
     This function will loop through the homo sapiens HBB sequences.
     It will use NCBI's BLAST to search for HBB nucleotide sequences from other
@@ -27,7 +27,7 @@ def find_similar_sequences(input_fasta, output_file, log_file=None, e_value=0.00
     '''
     
     sep="\n-------------------------\n"
-    top_hits = 5
+    
     id_list = []
 
     if log_file:
@@ -40,12 +40,14 @@ def find_similar_sequences(input_fasta, output_file, log_file=None, e_value=0.00
         f_log.write(f"Running BLASTn for {record.id}...")
     
     # Accessing NCBI's online BLASTn tool to searh for the similar sequence
-    result_handle = NCBIWWW.qblast("blastn", "nt", record.format("fasta"), entrez_query="hemoglobin[All Fields] NOT 'Homo sapiens'[Organism]")
+    result_handle = NCBIWWW.qblast("blastn", "nt", record.format("fasta"), entrez_query="HBB[Gene] NOT Homo sapiens[Organism] NOT Humans [Title]")
     blast_record = NCBIXML.read(result_handle)
     
+    top_hits = 20
     if log_file:
         f_log.write(f"\n>>> BLAST results for {record.id} <<<\n")
         for alignment in blast_record.alignments[:top_hits]:
+            
             hsp = alignment.hsps[0]
             f_log.write(f"Hit ID: {alignment.accession}\n")
             f_log.write(f"  Title: {alignment.title}\n")
@@ -55,13 +57,14 @@ def find_similar_sequences(input_fasta, output_file, log_file=None, e_value=0.00
         f_log.write(sep)
     
     with open(output_file, 'w') as out_handle:
-        for alignment in blast_record.alignments[:5]:
-            out_handle.write(f"{alignment.accession}\n")
-            id_list.append(alignment.accession)
+        for alignment in blast_record.alignments[:top_hits]:
+            if "Homo sapiens" not in alignment.title:
+                out_handle.write(f"{alignment.accession}\n")
+                id_list.append(alignment.accession)
     if log_file:
-        f_log.write(f"Top 5 hits saved to {output_file}\n")
+        f_log.write(f"Top hits saved to {output_file}\n")
         f_log.close()
-    print(f"Top 5 hits saved to {output_file}")
+    print(f"Top hits saved to {output_file}")
     print(f"BLASTn search completed for {record.id}. Results saved to {output_file}.")
 
     return id_list
@@ -71,13 +74,13 @@ def main():
     if not Entrez.email or '@' not in Entrez.email:
         raise ValueError("You must provide a valid email address for NCBI Entrez access.")
     
-    log_path = 'data/logs/similar_sequences.log'
+    log_path = 'logs/similar_sequences.log'
     output_path = 'data/metadata/similar_sequences.txt'
 
     parser = argparse.ArgumentParser(description='Retrieve similar Hemoglobin sequences from NCBI')
     parser.add_argument('-o', '--output', type=str, default=output_path, dest='output_file',
                         help="Path to save the similar sequences' accession IDs")
-    parser.add_argument('--log', type=str, default=log_path, dest='log',
+    parser.add_argument('--log', type=str, default=log_path, dest='log_path',
                         help='Path to save the log file')
     parser.add_argument('-i', '--input', dest='fasta_file', 
                         help='Input fasta file containing Human Hemoglobin Gene sequence', required=False)
@@ -86,7 +89,7 @@ def main():
 
     args = parser.parse_args()
     output_path = args.output_file
-    log_path = args.log
+    log_path = args.log_path
     output_directory = args.directory if args.directory else input("Enter the directory to save the fasta files: ").strip()
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
